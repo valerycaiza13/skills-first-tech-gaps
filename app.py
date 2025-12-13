@@ -182,7 +182,9 @@ def skills_evaluadas_por_area(empleados_df, skills_req_df):
 
 with tab1:
     st.subheader("Headcount")
-    st.markdown("### Skills evaluadas por área")
+    st.markdown("### Empleados por área")
+    st.dataframe(por_area, use_container_width=True)
+     st.markdown("### Skills evaluadas por área")
 st.caption(
     "Listado de skills técnicas consideradas en la evaluación, "
     "según los roles existentes en cada área."
@@ -207,9 +209,6 @@ else:
     c1.metric("Total empleados", int(total_emp))
     c2.metric("Empleados afectados (>=1 gap)", int(empleados_afectados_total))
     c3.metric("% empleados afectados", f"{pct_empleados_afectados_total:.1f}%")
-
-    st.markdown("### Empleados por área")
-    st.dataframe(por_area, use_container_width=True)
 
     st.markdown("### Empleados por rol (dentro de cada área)")
     st.dataframe(por_rol, use_container_width=True)
@@ -271,6 +270,7 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
 
 
 
