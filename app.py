@@ -152,10 +152,57 @@ criticas_df = skills_criticas_en_riesgo(df_f, skill_df, threshold_pct=threshold_
 empleados_afectados_total = (persona_df["skills_con_gap"] > 0).sum()
 pct_empleados_afectados_total = (empleados_afectados_total / persona_df["employee_id"].nunique()) * 100
 
-tab1, tab2, tab3, tab4 = st.tabs(["Resumen", "Gap por skill", "Gap por rol/área", "Por persona (detalle + recos)"])
+tab1, tab2, tab3, tab4 = st.tabs(["Resumen", "Gap por skill", "Gap por rol/área", "Por persona"])
+def skills_evaluadas_por_area(empleados_df, skills_req_df):
+    """
+    Devuelve las skills evaluadas por área,
+    en base a los roles que existen en cada área.
+    """
+    roles_por_area = empleados_df.groupby("area")["rol"].unique().to_dict()
+
+    filas = []
+    for area, roles in roles_por_area.items():
+        df_area = skills_req_df[skills_req_df["rol"].isin(roles)].copy()
+        if df_area.empty:
+            continue
+
+        df_area = (
+            df_area.groupby(["skill", "categoria_skill"], as_index=False)
+                   .agg(peso=("peso", "max"))
+        )
+        df_area["area"] = area
+        filas.append(df_area)
+
+    if not filas:
+        return pd.DataFrame(columns=["area", "skill", "categoria_skill", "peso"])
+
+    out = pd.concat(filas, ignore_index=True)
+    out = out.sort_values(["area", "peso", "skill"], ascending=[True, False, True])
+    return out
 
 with tab1:
     st.subheader("Headcount")
+    st.markdown("### Skills evaluadas por área")
+st.caption(
+    "Listado de skills técnicas consideradas en la evaluación, "
+    "según los roles existentes en cada área."
+)
+
+skills_area_df = skills_evaluadas_por_area(empleados, skills_req)
+
+area_focus_skills = st.selectbox(
+    "Selecciona un área para ver las skills evaluadas:",
+    ["Todas"] + sorted(skills_area_df["area"].unique().tolist())
+)
+
+if area_focus_skills != "Todas":
+    st.dataframe(
+        skills_area_df[skills_area_df["area"] == area_focus_skills],
+        use_container_width=True
+    )
+else:
+    st.dataframe(skills_area_df, use_container_width=True)
+
     c1, c2, c3 = st.columns(3)
     c1.metric("Total empleados", int(total_emp))
     c2.metric("Empleados afectados (>=1 gap)", int(empleados_afectados_total))
@@ -224,6 +271,7 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
 
 
 
