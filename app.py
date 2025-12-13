@@ -62,16 +62,26 @@ def gap_por_skill(df_):
     return out
 
 def gap_por_rol_area(df_):
-    out = (
-        df_.groupby(["area","rol"], as_index=False)
-           .agg(
-               empleados=("employee_id","nunique"),
-               empleados_afectados=("tiene_gap","sum")
-           )
+    # Primero: a nivel PERSONA → si tiene al menos 1 gap
+    persona_gap = (
+        df_.groupby(["area","rol","employee_id"], as_index=False)
+           .agg(tiene_gap=("tiene_gap","any"))
     )
+
+    # Luego: agregamos por rol y área
+    out = (
+        persona_gap.groupby(["area","rol"], as_index=False)
+                   .agg(
+                       empleados=("employee_id","nunique"),
+                       empleados_afectados=("tiene_gap","sum")
+                   )
+    )
+
     out["pct_empleados_afectados"] = (out["empleados_afectados"] / out["empleados"]) * 100
     out = out.sort_values("pct_empleados_afectados", ascending=False)
+
     return out
+
 
 def gap_por_persona(df_):
     out = (
@@ -214,3 +224,4 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
