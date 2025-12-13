@@ -207,7 +207,6 @@ if area_focus_skills != "Todas":
         skills_area_df[skills_area_df["area"] == area_focus_skills],
         use_container_width=True
     )
-)
 else:
     st.dataframe(skills_area_df, use_container_width=True)
     st.info(
@@ -272,6 +271,7 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
 
 
 
