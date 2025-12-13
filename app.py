@@ -128,7 +128,7 @@ def recomendar(df_emp):
 # -------------------------
 # UI
 # -------------------------
-st.title("Skills-First – Tech Gaps (simple y completo)")
+st.title("Skills-First–Tech Gaps")
 
 with st.sidebar:
     st.header("Filtros")
@@ -166,6 +166,16 @@ with tab1:
 
     st.markdown("### Empleados por rol (dentro de cada área)")
     st.dataframe(por_rol, use_container_width=True)
+    
+st.markdown("### ¿Qué significa el peso de una skill?")
+st.info(
+    "Cada skill tiene un **peso de importancia** definido por el rol:\n\n"
+    "- **Peso 1**: skill básica o de apoyo\n"
+    "- **Peso 2**: skill importante para el desempeño del rol\n"
+    "- **Peso 3**: **skill crítica** para el rol (impacto directo en productividad y calidad)\n\n"
+    "Las *skills críticas en riesgo* son aquellas con **peso = 3** y un **alto porcentaje de empleados afectados** "
+    "según el umbral seleccionado."
+)
 
     st.markdown("### Skills críticas en riesgo (peso=3 + umbral)")
     if len(criticas_df) == 0:
@@ -224,4 +234,5 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
 
