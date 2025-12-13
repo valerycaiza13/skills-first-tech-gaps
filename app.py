@@ -1,7 +1,8 @@
 import pandas as pd
 import streamlit as st
 from pathlib import Path
-
+from openai import OpenAI
+import os
 st.set_page_config(page_title="Skills-First Tech Gaps", layout="wide")
 
 DATA_DIR = Path(__file__).parent  # CSV al mismo nivel que app.py
@@ -124,6 +125,33 @@ def recomendar(df_emp):
         })
 
     return pd.DataFrame(recs)
+@st.cache_data(show_spinner=False)
+def generar_informe_ai(resumen_texto: str) -> str:
+    api_key = None
+    if "OPENAI_API_KEY" in st.secrets:
+        api_key = st.secrets["OPENAI_API_KEY"]
+    else:
+        api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        return "Falta configurar OPENAI_API_KEY en Secrets de Streamlit."
+
+    client = OpenAI(api_key=api_key)
+
+    resp = client.responses.create(
+        model="gpt-5.2",
+        instructions=(
+            "Eres People Analytics Lead. Redacta un informe profesional y accionable "
+            "basado SOLO en los datos proporcionados. No inventes skills, niveles ni cifras. "
+            "Usa el peso solo como prioridad (3=crítica, 2=importante, 1=básica). "
+            "Devuelve la respuesta en español con esta estructura: "
+            "1) Resumen ejecutivo, 2) Hallazgos clave, 3) Top prioridades, "
+            "4) Plan 30/60/90 días, 5) Riesgos si no se actúa."
+        ),
+        input=resumen_texto,
+    )
+
+    return resp.output_text
 
 # -------------------------
 # UI
@@ -280,6 +308,24 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+        st.markdown("### Informe con IA (Generative AI)")
+
+top_gaps = df_emp[df_emp["gap_pos"] > 0].sort_values("gap_pos", ascending=False).head(8)
+
+resumen = f"""
+Empleado: {df_emp['nombre'].iloc[0]} | Rol: {df_emp['rol'].iloc[0]} | Área: {df_emp['area'].iloc[0]}
+Regla: gap = nivel_requerido - nivel_actual (solo positivos). Peso: 3=crítica, 2=importante, 1=básica.
+
+Top brechas (máx 8):
+{top_gaps[['skill','categoria_skill','nivel_actual','nivel_requerido','gap_pos','peso']].to_string(index=False)}
+"""
+
+if st.button("Generar informe con IA", type="primary"):
+    with st.spinner("Generando informe..."):
+        informe = generar_informe_ai(resumen)
+    st.markdown(informe)
+
+
 
 
 
