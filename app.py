@@ -214,6 +214,7 @@ else:
     "- **3** → Muy importante / crítica para el rol\n"
     "- **2** → Importante\n"
     "- **1** → Básica o de apoyo"
+    )
     st.markdown("### Skills críticas en riesgo (peso = 3 → muy importantes para el rol)")
     if len(criticas_df) == 0:
         st.info("No se detectaron skills críticas en riesgo con el umbral actual.")
@@ -271,6 +272,7 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
 
 
 
