@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import streamlit as st
 from pathlib import Path
 
@@ -23,16 +22,17 @@ def load_data():
         how="left"
     )
 
-    # tipos numéricos
+    # numeric
     df["nivel_actual"] = pd.to_numeric(df["nivel_actual"], errors="coerce")
     df["nivel_requerido"] = pd.to_numeric(df["nivel_requerido"], errors="coerce")
     df["peso"] = pd.to_numeric(df["peso"], errors="coerce")
 
-    # GAP simple (sin ponderación)
+    # gap simple
     df["gap"] = df["nivel_requerido"] - df["nivel_actual"]
     df["gap_pos"] = df["gap"].clip(lower=0)
-
     df["tiene_gap"] = df["gap_pos"] > 0
+
+    # "critica" solo como etiqueta (no multiplicamos nada)
     df["skill_critica"] = df["peso"] == 3
 
     return empleados, skills_req, skills_act, df
@@ -40,35 +40,25 @@ def load_data():
 empleados, skills_req, skills_act, df = load_data()
 
 # -------------------------
-# Helpers (outputs)
+# Outputs
 # -------------------------
+def resumen_headcount(empleados_df):
+    total = empleados_df["employee_id"].nunique()
+    por_area = empleados_df.groupby("area")["employee_id"].nunique().reset_index(name="empleados")
+    por_rol = empleados_df.groupby(["area","rol"])["employee_id"].nunique().reset_index(name="empleados")
+    return total, por_area, por_rol
+
 def gap_por_skill(df_):
     out = (
-        df_.groupby(["skill", "categoria_skill"], as_index=False)
+        df_.groupby(["skill","categoria_skill"], as_index=False)
            .agg(
-               empleados_total=("employee_id", "nunique"),
-               empleados_con_gap=("tiene_gap", "sum"),
-               gap_promedio=("gap_pos", "mean"),
-               gap_total=("gap_pos", "sum"),
-               peso=("peso", "max")  # peso está definido por rol-skill, aquí solo para referencia
+               empleados_total=("employee_id","nunique"),
+               empleados_afectados=("tiene_gap","sum"),
+               peso=("peso","max")
            )
     )
-    out["pct_empleados_con_gap"] = (out["empleados_con_gap"] / out["empleados_total"]) * 100
-    out = out.sort_values(["gap_total", "pct_empleados_con_gap"], ascending=False)
-    return out
-
-def gap_por_persona(df_):
-    out = (
-        df_.groupby(["employee_id","nombre","area","rol"], as_index=False)
-           .agg(
-               skills_evaluadas=("skill","count"),
-               skills_con_gap=("tiene_gap","sum"),
-               gap_total=("gap_pos","sum"),
-               gap_promedio=("gap_pos","mean")
-           )
-    )
-    out["pct_skills_con_gap"] = (out["skills_con_gap"] / out["skills_evaluadas"]) * 100
-    out = out.sort_values(["gap_total","pct_skills_con_gap"], ascending=False)
+    out["pct_empleados_afectados"] = (out["empleados_afectados"] / out["empleados_total"]) * 100
+    out = out.sort_values(["pct_empleados_afectados","empleados_afectados"], ascending=False)
     return out
 
 def gap_por_rol_area(df_):
@@ -76,36 +66,35 @@ def gap_por_rol_area(df_):
         df_.groupby(["area","rol"], as_index=False)
            .agg(
                empleados=("employee_id","nunique"),
-               gap_promedio=("gap_pos","mean"),
-               gap_total=("gap_pos","sum"),
-               pct_empleados_con_gap=("tiene_gap","mean")
+               empleados_afectados=("tiene_gap","sum")
            )
     )
-    out["pct_empleados_con_gap"] = out["pct_empleados_con_gap"] * 100
-    out = out.sort_values(["gap_promedio","gap_total"], ascending=False)
+    out["pct_empleados_afectados"] = (out["empleados_afectados"] / out["empleados"]) * 100
+    out = out.sort_values("pct_empleados_afectados", ascending=False)
     return out
 
-def kpis_agregados(df_, gap_persona_df, gap_skill_df, gap_rol_area_df):
-    empleados_total = gap_persona_df["employee_id"].nunique()
-    empleados_con_brecha = (gap_persona_df["skills_con_gap"] > 0).sum()
-    pct_empleados_con_brechas = (empleados_con_brecha / empleados_total) * 100
-
-    top_roles = gap_rol_area_df.sort_values("gap_promedio", ascending=False).head(5)
-    top3_skills = gap_skill_df.sort_values("gap_total", ascending=False).head(3)
-
-    return empleados_total, empleados_con_brecha, pct_empleados_con_brechas, top_roles, top3_skills
+def gap_por_persona(df_):
+    out = (
+        df_.groupby(["employee_id","nombre","area","rol"], as_index=False)
+           .agg(
+               skills_evaluadas=("skill","count"),
+               skills_con_gap=("tiene_gap","sum")
+           )
+    )
+    out["pct_skills_con_gap"] = (out["skills_con_gap"] / out["skills_evaluadas"]) * 100
+    out = out.sort_values(["skills_con_gap","pct_skills_con_gap"], ascending=False)
+    return out
 
 def skills_criticas_en_riesgo(df_, gap_skill_df, threshold_pct=30):
-    # Definición simple y defendible:
-    # skill crítica si peso=3 y además afecta al >= threshold_pct de empleados evaluados para esa skill
-    crit = gap_skill_df[(gap_skill_df["pct_empleados_con_gap"] >= threshold_pct) & (gap_skill_df["peso"] == 3) & (gap_skill_df["gap_total"] > 0)]
-    return crit.sort_values(["gap_total","pct_empleados_con_gap"], ascending=False)
+    # crítica = peso 3, en riesgo = >= threshold_pct afectados
+    crit = gap_skill_df[(gap_skill_df["peso"] == 3) & (gap_skill_df["pct_empleados_afectados"] >= threshold_pct)]
+    return crit.sort_values(["pct_empleados_afectados","empleados_afectados"], ascending=False)
 
-def recomendar_formacion(df_emp):
-    # Recomendaciones simples basadas en gaps (sin ponderación)
-    # Devuelve top 3 skills con mayor gap para esa persona
-    df_emp = df_emp.copy()
-    df_emp = df_emp[df_emp["gap_pos"] > 0].sort_values("gap_pos", ascending=False).head(3)
+def recomendar(df_emp):
+    # recomendación simple: top 3 gaps (sin ponderación)
+    df_emp = df_emp[df_emp["gap_pos"] > 0].sort_values("gap_pos", ascending=False).head(3).copy()
+    if df_emp.empty:
+        return pd.DataFrame(columns=["skill","nivel_actual","nivel_requerido","gap","recomendacion"])
 
     recs = []
     for _, r in df_emp.iterrows():
@@ -113,17 +102,14 @@ def recomendar_formacion(df_emp):
             accion = "Upskilling prioritario: curso + práctica guiada (4–6 semanas)"
         elif r["peso"] == 3:
             accion = "Upskilling focalizado: workshop interno + ejercicios (2–3 semanas)"
-        elif r["categoria_skill"] == "Tools & Collaboration":
-            accion = "Refuerzo rápido: workshop interno + checklist"
-        elif r["categoria_skill"] == "Security & Systems":
-            accion = "Microlearning + casos prácticos + repaso de política interna"
         else:
             accion = "Curso corto + práctica aplicada en tareas del rol"
 
         recs.append({
             "skill": r["skill"],
-            "gap": float(r["gap_pos"]),
-            "peso": int(r["peso"]) if pd.notna(r["peso"]) else None,
+            "nivel_actual": r["nivel_actual"],
+            "nivel_requerido": r["nivel_requerido"],
+            "gap": r["gap_pos"],
             "recomendacion": accion
         })
 
@@ -132,13 +118,13 @@ def recomendar_formacion(df_emp):
 # -------------------------
 # UI
 # -------------------------
-st.title("Skills-First – Tech Gaps (versión completa)")
+st.title("Skills-First – Tech Gaps (simple y completo)")
 
 with st.sidebar:
     st.header("Filtros")
     area_sel = st.selectbox("Área", ["Todas"] + sorted(df["area"].dropna().unique().tolist()))
     rol_sel = st.selectbox("Rol", ["Todos"] + sorted(df["rol"].dropna().unique().tolist()))
-    threshold_pct = st.slider("Umbral 'críticas en riesgo' (% empleados con gap)", 10, 70, 30, 5)
+    threshold_pct = st.slider("Umbral 'skills críticas en riesgo' (% afectados)", 10, 70, 30, 5)
 
 df_f = df.copy()
 if area_sel != "Todas":
@@ -146,53 +132,60 @@ if area_sel != "Todas":
 if rol_sel != "Todos":
     df_f = df_f[df_f["rol"] == rol_sel]
 
-# Outputs base
+total_emp, por_area, por_rol = resumen_headcount(empleados)
 skill_df = gap_por_skill(df_f)
-persona_df = gap_por_persona(df_f)
 rol_area_df = gap_por_rol_area(df_f)
-
-# KPIs
-empleados_total, empleados_con_brecha, pct_empleados_con_brechas, top_roles, top3_skills = kpis_agregados(df_f, persona_df, skill_df, rol_area_df)
-
-# Skills críticas en riesgo
+persona_df = gap_por_persona(df_f)
 criticas_df = skills_criticas_en_riesgo(df_f, skill_df, threshold_pct=threshold_pct)
 
-# Tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Overview (KPIs)", "Gap por skill", "Gap por rol/área", "Gap por persona + Recos"])
+# KPIs simples
+empleados_afectados_total = (persona_df["skills_con_gap"] > 0).sum()
+pct_empleados_afectados_total = (empleados_afectados_total / persona_df["employee_id"].nunique()) * 100
+
+tab1, tab2, tab3, tab4 = st.tabs(["Resumen", "Gap por skill", "Gap por rol/área", "Por persona (detalle + recos)"])
 
 with tab1:
-    st.subheader("Indicadores agregados")
+    st.subheader("Headcount")
     c1, c2, c3 = st.columns(3)
-    c1.metric("% empleados con brechas", f"{pct_empleados_con_brechas:.1f}%")
-    c2.metric("Empleados con brechas", int(empleados_con_brecha))
-    c3.metric("Empleados evaluados", int(empleados_total))
+    c1.metric("Total empleados", int(total_emp))
+    c2.metric("Empleados afectados (>=1 gap)", int(empleados_afectados_total))
+    c3.metric("% empleados afectados", f"{pct_empleados_afectados_total:.1f}%")
 
-    st.markdown("### Top roles con mayor gap (promedio)")
-    st.dataframe(top_roles, use_container_width=True)
+    st.markdown("### Empleados por área")
+    st.dataframe(por_area, use_container_width=True)
 
-    st.markdown("### Top 3 skills con mayor gap (total)")
-    st.dataframe(top3_skills[["skill","categoria_skill","gap_total","pct_empleados_con_gap","peso"]], use_container_width=True)
+    st.markdown("### Empleados por rol (dentro de cada área)")
+    st.dataframe(por_rol, use_container_width=True)
 
     st.markdown("### Skills críticas en riesgo (peso=3 + umbral)")
     if len(criticas_df) == 0:
         st.info("No se detectaron skills críticas en riesgo con el umbral actual.")
     else:
-        st.dataframe(criticas_df[["skill","categoria_skill","gap_total","pct_empleados_con_gap","peso"]], use_container_width=True)
+        st.dataframe(
+            criticas_df[["skill","categoria_skill","empleados_afectados","empleados_total","pct_empleados_afectados","peso"]],
+            use_container_width=True
+        )
 
 with tab2:
-    st.subheader("Gap por skill")
-    st.caption("Gap = nivel requerido - nivel actual (solo si es positivo). No se usa ponderación.")
-    st.dataframe(skill_df, use_container_width=True)
+    st.subheader("Gap por skill (solo % y # empleados afectados)")
+    st.caption("Aquí vemos cuántas personas NO cumplen el nivel requerido por skill (según su rol).")
+    st.dataframe(
+        skill_df[["skill","categoria_skill","empleados_afectados","empleados_total","pct_empleados_afectados","peso"]],
+        use_container_width=True
+    )
 
 with tab3:
-    st.subheader("Gap por rol y por área")
-    st.dataframe(rol_area_df, use_container_width=True)
+    st.subheader("Gap por rol y por área (solo % y # empleados afectados)")
+    st.dataframe(
+        rol_area_df[["area","rol","empleados_afectados","empleados","pct_empleados_afectados"]],
+        use_container_width=True
+    )
 
 with tab4:
     st.subheader("Gap por persona")
     st.dataframe(persona_df, use_container_width=True)
 
-    st.markdown("### Ver detalle + recomendaciones por empleado")
+    st.markdown("### Selecciona un empleado para ver: nivel actual vs requerido + gap")
     emp_list = empleados[["employee_id","nombre","rol","area"]].copy()
     if area_sel != "Todas":
         emp_list = emp_list[emp_list["area"] == area_sel]
@@ -206,18 +199,18 @@ with tab4:
         emp_label = st.selectbox("Empleado", emp_list["label"].tolist())
         emp_id = emp_list.loc[emp_list["label"] == emp_label, "employee_id"].iloc[0]
 
-        df_emp = df_f[df_f["employee_id"] == emp_id].copy().sort_values("gap_pos", ascending=False)
+        df_emp = df_f[df_f["employee_id"] == emp_id].copy()
+        df_emp = df_emp.sort_values("gap_pos", ascending=False)
 
-        st.markdown("#### Detalle de skills")
-        st.dataframe(df_emp[[
-            "skill","categoria_skill","nivel_actual","nivel_requerido","peso","gap_pos"
-        ]], use_container_width=True)
+        st.markdown("#### Detalle (nivel actual, requerido, gap)")
+        st.dataframe(
+            df_emp[["skill","categoria_skill","nivel_actual","nivel_requerido","gap_pos","peso"]],
+            use_container_width=True
+        )
 
         st.markdown("#### Recomendaciones (Top 3 gaps)")
-        recs_df = recomendar_formacion(df_emp)
-        if len(recs_df) == 0:
+        rec_df = recomendar(df_emp)
+        if rec_df.empty:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
-            st.dataframe(recs_df, use_container_width=True)
-
-
+            st.dataframe(rec_df, use_container_width=True)
