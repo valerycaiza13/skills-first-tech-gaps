@@ -181,13 +181,13 @@ def skills_evaluadas_por_area(empleados_df, skills_req_df):
     return out
 
 with tab1:
-    st.subheader("Headcount")
-    st.markdown("### Empleados por área")
-    st.dataframe(por_area, use_container_width=True)
+    st.subheader("Resumen")
     c1, c2, c3 = st.columns(3)
     c1.metric("Total empleados", int(total_emp))
     c2.metric("Empleados afectados (>=1 gap)", int(empleados_afectados_total))
     c3.metric("% empleados afectados", f"{pct_empleados_afectados_total:.1f}%")
+    st.markdown("### Empleados por área")
+    st.dataframe(por_area, use_container_width=True)
     st.markdown("### Empleados por rol (dentro de cada área)")
     st.dataframe(por_rol, use_container_width=True)
     st.markdown("### Skills evaluadas por área")
@@ -207,6 +207,12 @@ if area_focus_skills != "Todas":
         skills_area_df[skills_area_df["area"] == area_focus_skills],
         use_container_width=True
     )
+    st.info(
+    "🔎 **Interpretación del peso de las skills**\n\n"
+    "- **3** → Muy importante / crítica para el rol\n"
+    "- **2** → Importante\n"
+    "- **1** → Básica o de apoyo"
+)
 else:
     st.dataframe(skills_area_df, use_container_width=True)
     st.markdown("### Skills críticas en riesgo (peso = 3 → muy importantes para el rol)")
@@ -266,6 +272,7 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
 
 
 
