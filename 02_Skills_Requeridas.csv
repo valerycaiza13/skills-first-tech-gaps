@@ -1,0 +1,21 @@
+rol,skill,categoria_skill,nivel_requerido,peso
+Data Analyst,SQL,Programming,4,3
+Data Analyst,Data Analysis,Data,4,3
+Data Analyst,Data Visualization,Data,4,3
+Data Analyst,Python,Programming,3,2
+Data Analyst,Basic Statistics,Data,3,2
+Data Analyst,Git,Tools & Collaboration,3,2
+Data Analyst,Data Privacy Basics,Security & Systems,2,1
+Software Developer,Python,Programming,4,3
+Software Developer,JavaScript,Programming,4,3
+Software Developer,SQL,Programming,3,2
+Software Developer,Git,Tools & Collaboration,4,3
+Software Developer,Agile / Scrum,Tools & Collaboration,3,2
+Software Developer,Docker (Basics),Cloud & Infrastructure,3,2
+Software Developer,Linux Basics,Security & Systems,2,1
+IT Support / Systems,Linux Basics,Security & Systems,4,3
+IT Support / Systems,AWS (Cloud Basics),Cloud & Infrastructure,3,2
+IT Support / Systems,Git,Tools & Collaboration,2,1
+IT Support / Systems,Docker (Basics),Cloud & Infrastructure,2,1
+IT Support / Systems,Data Privacy Basics,Security & Systems,3,2
+IT Support / Systems,Agile / Scrum,Tools & Collaboration,2,1

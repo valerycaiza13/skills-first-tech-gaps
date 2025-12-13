@@ -1,0 +1,82 @@
+employee_id,skill,nivel_actual
+E01,Python,2
+E01,JavaScript,2
+E01,SQL,4
+E01,Git,3
+E01,Agile / Scrum,3
+E01,Docker (Basics),3
+E01,Linux Basics,2
+E02,Python,2
+E02,JavaScript,5
+E02,SQL,2
+E02,Git,2
+E02,Agile / Scrum,2
+E02,Docker (Basics),3
+E02,Linux Basics,3
+E03,Python,2
+E03,JavaScript,3
+E03,SQL,5
+E03,Git,3
+E03,Agile / Scrum,5
+E03,Docker (Basics),4
+E03,Linux Basics,2
+E04,Python,3
+E04,JavaScript,5
+E04,SQL,4
+E04,Git,4
+E04,Agile / Scrum,3
+E04,Docker (Basics),3
+E04,Linux Basics,4
+E05,Python,2
+E05,JavaScript,2
+E05,SQL,5
+E05,Git,2
+E05,Agile / Scrum,4
+E05,Docker (Basics),4
+E05,Linux Basics,4
+E06,SQL,2
+E06,Data Analysis,5
+E06,Data Visualization,2
+E06,Python,5
+E06,Basic Statistics,2
+E06,Git,4
+E06,Data Privacy Basics,4
+E07,SQL,3
+E07,Data Analysis,2
+E07,Data Visualization,2
+E07,Python,3
+E07,Basic Statistics,4
+E07,Git,2
+E07,Data Privacy Basics,3
+E08,SQL,2
+E08,Data Analysis,5
+E08,Data Visualization,4
+E08,Python,5
+E08,Basic Statistics,4
+E08,Git,3
+E08,Data Privacy Basics,4
+E09,SQL,4
+E09,Data Analysis,3
+E09,Data Visualization,4
+E09,Python,2
+E09,Basic Statistics,3
+E09,Git,3
+E09,Data Privacy Basics,3
+E10,Linux Basics,5
+E10,AWS (Cloud Basics),5
+E10,Git,4
+E10,Docker (Basics),3
+E10,Data Privacy Basics,4
+E10,Agile / Scrum,2
+E11,Linux Basics,3
+E11,AWS (Cloud Basics),2
+E11,Git,4
+E11,Docker (Basics),5
+E11,Data Privacy Basics,4
+E11,Agile / Scrum,2
+E12,Linux Basics,3
+E12,AWS (Cloud Basics),4
+E12,Git,3
+E12,Docker (Basics),5
+E12,Data Privacy Basics,5
+E12,Agile / Scrum,5

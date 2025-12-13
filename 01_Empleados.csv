@@ -1,0 +1,13 @@
+employee_id,nombre,area,rol,seniority,manager
+E01,Ana Lopez,Software Development,Software Developer,Mid,Head of Tech
+E02,Carlos Ruiz,Software Development,Software Developer,Senior,Head of Tech
+E03,Maria Perez,Software Development,Software Developer,Junior,Head of Tech
+E04,Jorge Santos,Software Development,Software Developer,Mid,Head of Tech
+E05,Lucia Gomez,Software Development,Software Developer,Senior,Head of Tech
+E06,Daniel Torres,Data & Analytics,Data Analyst,Mid,Head of Data
+E07,Sofia Martinez,Data & Analytics,Data Analyst,Senior,Head of Data
+E08,Pablo Navarro,Data & Analytics,Data Analyst,Junior,Head of Data
+E09,Elena Cruz,Data & Analytics,Data Analyst,Mid,Head of Data
+E10,Ricardo Molina,IT & Infrastructure,IT Support / Systems,Senior,IT Manager
+E11,Laura Vega,IT & Infrastructure,IT Support / Systems,Mid,IT Manager
+E12,Andres Castillo,IT & Infrastructure,IT Support / Systems,Junior,IT Manager
