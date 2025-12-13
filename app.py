@@ -188,12 +188,13 @@ with tab1:
     c1.metric("Total empleados", int(total_emp))
     c2.metric("Empleados afectados (>=1 gap)", int(empleados_afectados_total))
     c3.metric("% empleados afectados", f"{pct_empleados_afectados_total:.1f}%")
-    st.markdown("### Skills evaluadas por área")
+    st.markdown("### Empleados por rol (dentro de cada área)")
+    st.dataframe(por_rol, use_container_width=True)
+     st.markdown("### Skills evaluadas por área")
 st.caption(
     "Listado de skills técnicas consideradas en la evaluación, "
     "según los roles existentes en cada área."
 )
-
 skills_area_df = skills_evaluadas_por_area(empleados, skills_req)
 
 area_focus_skills = st.selectbox(
@@ -208,10 +209,6 @@ if area_focus_skills != "Todas":
     )
 else:
     st.dataframe(skills_area_df, use_container_width=True)
-
-    st.markdown("### Empleados por rol (dentro de cada área)")
-    st.dataframe(por_rol, use_container_width=True)
-    
     st.markdown("### Skills críticas en riesgo (peso = 3 → muy importantes para el rol)")
     if len(criticas_df) == 0:
         st.info("No se detectaron skills críticas en riesgo con el umbral actual.")
@@ -269,6 +266,7 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
 
 
 
