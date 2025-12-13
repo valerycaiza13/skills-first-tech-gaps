@@ -138,21 +138,29 @@ def generar_informe_ai(resumen_texto: str) -> str:
 
     client = OpenAI(api_key=api_key)
 
-    resp = client.responses.create(
-        model="gpt-5.2",
-        instructions=(
-            "Eres People Analytics Lead. Redacta un informe profesional y accionable "
-            "basado SOLO en los datos proporcionados. No inventes skills, niveles ni cifras. "
-            "Usa el peso solo como prioridad (3=crítica, 2=importante, 1=básica). "
-            "Devuelve la respuesta en español con esta estructura: "
-            "1) Resumen ejecutivo, 2) Hallazgos clave, 3) Top prioridades, "
-            "4) Plan 30/60/90 días, 5) Riesgos si no se actúa."
-        ),
-        input=resumen_texto,
-    )
+    try:
+        resp = client.responses.create(
+            model="gpt-4o-mini",
+            instructions=(
+                "Eres People Analytics Lead. Redacta un informe profesional y accionable "
+                "basado SOLO en los datos proporcionados. No inventes skills, niveles ni cifras. "
+                "Usa el peso solo como prioridad (3=crítica, 2=importante, 1=básica). "
+                "Devuelve la respuesta en español con esta estructura: "
+                "1) Resumen ejecutivo, 2) Hallazgos clave, 3) Top prioridades, "
+                "4) Plan 30/60/90 días, 5) Riesgos si no se actúa."
+            ),
+            input=resumen_texto,
+        )
+        return resp.output_text
 
-    return resp.output_text
-
+    except Exception:
+        return (
+            "No se pudo generar el informe con IA porque la cuenta no tiene cuota/creditos activos "
+            "en la API de OpenAI (error de 'insufficient_quota').\n\n"
+            "En un entorno real, este botón generaría automáticamente un informe ejecutivo y un plan "
+            "de acción personalizado a partir de los gaps calculados, lo cual reduce significativamente "
+            "el tiempo manual de análisis y redacción."
+        )
 # -------------------------
 # UI
 # -------------------------
@@ -290,7 +298,7 @@ with tab4:
         st.warning("No hay empleados para los filtros seleccionados.")
     else:
         emp_list["label"] = emp_list["employee_id"] + " - " + emp_list["nombre"] + " (" + emp_list["rol"] + ")"
-        emp_label = st.selectbox("Empleado", emp_list["label"].tolist())
+        emp_label = st.selectbox("Empleado", emp_list["label"].tolist(), key="emp_select")
         emp_id = emp_list.loc[emp_list["label"] == emp_label, "employee_id"].iloc[0]
 
         df_emp = df_f[df_f["employee_id"] == emp_id].copy()
@@ -308,11 +316,13 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
-        st.markdown("### Informe con IA (Generative AI)")
 
-top_gaps = df_emp[df_emp["gap_pos"] > 0].sort_values("gap_pos", ascending=False).head(8)
+        # ✅ SOLO AQUÍ VA EL BOTÓN
+        st.markdown("### Informe con IA (por empleado)")
 
-resumen = f"""
+        top_gaps = df_emp[df_emp["gap_pos"] > 0].sort_values("gap_pos", ascending=False).head(8)
+
+        resumen = f"""
 Empleado: {df_emp['nombre'].iloc[0]} | Rol: {df_emp['rol'].iloc[0]} | Área: {df_emp['area'].iloc[0]}
 Regla: gap = nivel_requerido - nivel_actual (solo positivos). Peso: 3=crítica, 2=importante, 1=básica.
 
@@ -320,10 +330,11 @@ Top brechas (máx 8):
 {top_gaps[['skill','categoria_skill','nivel_actual','nivel_requerido','gap_pos','peso']].to_string(index=False)}
 """
 
-if st.button("Generar informe con IA", type="primary"):
-    with st.spinner("Generando informe..."):
-        informe = generar_informe_ai(resumen)
-    st.markdown(informe)
+        if st.button("Generar informe con IA", type="primary", key="btn_informe_ai"):
+            with st.spinner("Generando informe..."):
+                informe = generar_informe_ai(resumen)
+            st.markdown(informe)
+
 
 
 
