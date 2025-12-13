@@ -8,7 +8,7 @@ st.set_page_config(page_title="Skills-First Tech Gaps", layout="wide")
 # -------------------------
 # Load data
 # -------------------------
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(__file__).parent
 
 @st.cache_data
 def load_data():
@@ -90,3 +90,4 @@ with tab2:
 with tab3:
     st.subheader("Gap por persona")
     st.dataframe(gap_persona, use_container_width=True)
+
