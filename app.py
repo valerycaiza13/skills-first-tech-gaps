@@ -190,7 +190,7 @@ with tab1:
     c3.metric("% empleados afectados", f"{pct_empleados_afectados_total:.1f}%")
     st.markdown("### Empleados por rol (dentro de cada área)")
     st.dataframe(por_rol, use_container_width=True)
-     st.markdown("### Skills evaluadas por área")
+    st.markdown("### Skills evaluadas por área")
 st.caption(
     "Listado de skills técnicas consideradas en la evaluación, "
     "según los roles existentes en cada área."
@@ -266,6 +266,7 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
 
 
 
