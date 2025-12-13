@@ -191,18 +191,18 @@ with tab1:
     st.markdown("### Empleados por rol (dentro de cada área)")
     st.dataframe(por_rol, use_container_width=True)
     st.markdown("### Skills evaluadas por área")
-st.caption(
+    st.caption(
     "Listado de skills técnicas consideradas en la evaluación, "
     "según los roles existentes en cada área."
 )
-skills_area_df = skills_evaluadas_por_area(empleados, skills_req)
+    skills_area_df = skills_evaluadas_por_area(empleados, skills_req)
 
-area_focus_skills = st.selectbox(
+    area_focus_skills = st.selectbox(
     "Selecciona un área para ver las skills evaluadas:",
     ["Todas"] + sorted(skills_area_df["area"].unique().tolist())
 )
 
-if area_focus_skills != "Todas":
+    if area_focus_skills != "Todas":
     st.dataframe(
         skills_area_df[skills_area_df["area"] == area_focus_skills],
         use_container_width=True
@@ -225,7 +225,7 @@ else:
         )
 
 with tab2:
-    st.subheader("Gap por skill (solo % y # empleados afectados)")
+    st.subheader("Gap por skill")
     st.caption("Aquí vemos cuántas personas NO cumplen el nivel requerido por skill (según su rol).")
     st.dataframe(
         skill_df[["skill","categoria_skill","empleados_afectados","empleados_total","pct_empleados_afectados","peso"]],
@@ -233,7 +233,7 @@ with tab2:
     )
 
 with tab3:
-    st.subheader("Gap por rol y por área (solo % y # empleados afectados)")
+    st.subheader("Gap por rol y por área")
     st.dataframe(
         rol_area_df[["area","rol","empleados_afectados","empleados","pct_empleados_afectados"]],
         use_container_width=True
@@ -272,6 +272,7 @@ with tab4:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
+
 
 
 
