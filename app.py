@@ -149,8 +149,10 @@ def generar_informe_ai(resumen_texto: str, prompt: str) -> str:
     if not api_key:
         return (
             "Falta configurar OPENAI_API_KEY en Secrets de Streamlit.\n\n"
-            "PROMPT:\n" + prompt + "\n\n"
-            "INPUT:\n" + resumen_texto
+            "PROMPT:\n"
+            + prompt
+            + "\n\nINPUT:\n"
+            + resumen_texto
         )
 
     client = OpenAI(api_key=api_key)
@@ -173,18 +175,6 @@ def generar_informe_ai(resumen_texto: str, prompt: str) -> str:
             + resumen_texto
         )
 
-        return resp.output_text
-
-    except Exception:
-    return (
-        "No se pudo generar el informe con IA porque la cuenta no tiene cuota/créditos activos "
-        "en la API de OpenAI (insufficient_quota).\n\n"
-        "En un entorno real, este botón generaría automáticamente un informe a partir de los gaps calculados.\n\n"
-        "PROMPT (instrucción que se enviaría a la IA):\n"
-        f"{PROMPT_INFORME_EMPLEADO}\n\n"
-        "INPUT (resumen de datos enviado a la IA):\n"
-        f"{resumen_texto}"
-    )
 
 # -------------------------
 # UI
@@ -407,6 +397,7 @@ Top brechas (máx 8):
 
             with st.expander("Ver input enviado (Tab 4)", expanded=False):
                 st.code(resumen, language="text")
+
 
 
 
