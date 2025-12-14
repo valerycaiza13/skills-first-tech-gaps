@@ -309,7 +309,7 @@ with tab1:
     # -------------------------------------------------
     # BOTÓN IA – INFORME EJECUTIVO (TAB 1)
     # -------------------------------------------------
-    st.markdown("### Informe ejecutivo con IA (Tab 1 – Resumen)")
+    st.markdown("### Informe ejecutivo con IA")
 
     criticas_txt = "No hay skills críticas en riesgo con el umbral actual."
     if len(criticas_df) > 0:
@@ -484,6 +484,7 @@ Top brechas (máx 8):
 
             with st.expander("Ver input enviado (Tab 4)"):
                 st.code(resumen, language="text")
+
 
 
 
