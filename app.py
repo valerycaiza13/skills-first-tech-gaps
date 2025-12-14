@@ -6,6 +6,19 @@ import os
 st.set_page_config(page_title="Skills-First Tech Gaps", layout="wide")
 
 DATA_DIR = Path(__file__).parent  # CSV al mismo nivel que app.py
+PROMPT_INFORME_RESUMEN = """
+Eres HR Director y People Analytics Lead. Genera un informe ejecutivo del área de Tecnología a partir de datos agregados.
+Usa SOLO la información proporcionada; no inventes cifras.
+
+Estructura (en español):
+1) Resumen ejecutivo (3–5 líneas)
+2) Hallazgos clave (bullets)
+3) Riesgos principales (bullets)
+4) Recomendaciones estratégicas (3–6 acciones)
+5) Plan 30/60/90 días
+
+Aclaración: el peso indica prioridad (3 crítica, 2 importante, 1 básica).
+""".strip()
 
 @st.cache_data
 def load_data():
@@ -126,7 +139,7 @@ def recomendar(df_emp):
 
     return pd.DataFrame(recs)
 @st.cache_data(show_spinner=False)
-def generar_informe_ai(resumen_texto: str) -> str:
+def generar_informe_ai(resumen_texto: str, prompt: str) -> str:
     api_key = None
     if "OPENAI_API_KEY" in st.secrets:
         api_key = st.secrets["OPENAI_API_KEY"]
@@ -134,33 +147,45 @@ def generar_informe_ai(resumen_texto: str) -> str:
         api_key = os.getenv("OPENAI_API_KEY")
 
     if not api_key:
-        return "Falta configurar OPENAI_API_KEY en Secrets de Streamlit."
+        return (
+            "Falta configurar OPENAI_API_KEY en Secrets de Streamlit.\n\n"
+            "PROMPT:\n" + prompt + "\n\n"
+            "INPUT:\n" + resumen_texto
+        )
 
     client = OpenAI(api_key=api_key)
 
     try:
         resp = client.responses.create(
             model="gpt-4o-mini",
-            instructions=(
-                "Eres People Analytics Lead. Redacta un informe profesional y accionable "
-                "basado SOLO en los datos proporcionados. No inventes skills, niveles ni cifras. "
-                "Usa el peso solo como prioridad (3=crítica, 2=importante, 1=básica). "
-                "Devuelve la respuesta en español con esta estructura: "
-                "1) Resumen ejecutivo, 2) Hallazgos clave, 3) Top prioridades, "
-                "4) Plan 30/60/90 días, 5) Riesgos si no se actúa."
-            ),
+            instructions=prompt,
             input=resumen_texto,
         )
         return resp.output_text
 
     except Exception:
         return (
-            "No se pudo generar el informe con IA porque la cuenta no tiene cuota/creditos activos "
-            "en la API de OpenAI (error de 'insufficient_quota').\n\n"
-            "En un entorno real, este botón generaría automáticamente un informe ejecutivo y un plan "
-            "de acción personalizado a partir de los gaps calculados, lo cual reduce significativamente "
-            "el tiempo manual de análisis y redacción."
+            "No se pudo generar el informe con IA porque la cuenta no tiene cuota/créditos activos "
+            "en la API de OpenAI (insufficient_quota).\n\n"
+            "PROMPT (instrucción que se enviaría a la IA):\n"
+            + prompt
+            + "\n\nINPUT (resumen de datos enviado a la IA):\n"
+            + resumen_texto
         )
+
+        return resp.output_text
+
+    except Exception:
+    return (
+        "No se pudo generar el informe con IA porque la cuenta no tiene cuota/créditos activos "
+        "en la API de OpenAI (insufficient_quota).\n\n"
+        "En un entorno real, este botón generaría automáticamente un informe a partir de los gaps calculados.\n\n"
+        "PROMPT (instrucción que se enviaría a la IA):\n"
+        f"{PROMPT_INFORME_EMPLEADO}\n\n"
+        "INPUT (resumen de datos enviado a la IA):\n"
+        f"{resumen_texto}"
+    )
+
 # -------------------------
 # UI
 # -------------------------
@@ -267,6 +292,47 @@ with tab1:
             criticas_df[["skill","categoria_skill","empleados_afectados","empleados_total","pct_empleados_afectados","peso"]],
             use_container_width=True
         )
+         st.markdown("### Informe ejecutivo con IA (Tab 1 - Resumen)")
+
+    criticas_txt = "No hay skills críticas en riesgo con el umbral actual."
+    if len(criticas_df) > 0:
+        criticas_txt = criticas_df[["skill","categoria_skill","pct_empleados_afectados","peso"]].to_string(index=False)
+
+    resumen_tab1 = f"""
+VISTA: Resumen del área Tech (datos agregados)
+Filtros activos: área={area_sel}, rol={rol_sel}
+Definición: empleado afectado = al menos un gap en cualquier skill.
+Peso: 3=crítica, 2=importante, 1=básica.
+
+KPIs:
+- Total empleados: {int(total_emp)}
+- Empleados afectados (>=1 gap): {int(empleados_afectados_total)}
+- % empleados afectados: {pct_empleados_afectados_total:.1f}%
+
+Empleados por área:
+{por_area.to_string(index=False)}
+
+Empleados por rol (dentro de cada área):
+{por_rol.to_string(index=False)}
+
+Skills críticas en riesgo (peso=3 y % afectados >= umbral):
+Umbral actual: {threshold_pct}%
+{criticas_txt}
+""".strip()
+
+    if st.button("Generar informe ejecutivo con IA", type="primary", key="btn_informe_ai_tab1"):
+        with st.spinner("Generando informe..."):
+            informe_tab1 = generar_informe_ai(resumen_tab1, PROMPT_INFORME_RESUMEN)
+
+        st.markdown("#### Resultado (IA)")
+        st.text_area("Salida (Tab 1)", value=informe_tab1, height=300)
+
+        with st.expander("Ver prompt usado (Tab 1)", expanded=False):
+            st.code(PROMPT_INFORME_RESUMEN, language="text")
+
+        with st.expander("Ver input enviado (Tab 1)", expanded=False):
+            st.code(resumen_tab1, language="text")
+
 
 with tab2:
     st.subheader("Gap por skill")
@@ -329,11 +395,21 @@ Regla: gap = nivel_requerido - nivel_actual (solo positivos). Peso: 3=crítica, 
 Top brechas (máx 8):
 {top_gaps[['skill','categoria_skill','nivel_actual','nivel_requerido','gap_pos','peso']].to_string(index=False)}
 """
-
-        if st.button("Generar informe con IA", type="primary", key="btn_informe_ai"):
+                if st.button("Generar informe con IA", type="primary", key="btn_informe_ai"):
             with st.spinner("Generando informe..."):
-                informe = generar_informe_ai(resumen)
-            st.markdown(informe)
+                informe = generar_informe_ai(resumen, PROMPT_INFORME_EMPLEADO)
+
+            st.markdown("#### Resultado (IA)")
+            st.text_area("Salida (Tab 4)", value=informe, height=300)
+
+            with st.expander("Ver prompt usado (Tab 4)", expanded=False):
+                st.code(PROMPT_INFORME_EMPLEADO, language="text")
+
+            with st.expander("Ver input enviado (Tab 4)", expanded=False):
+                st.code(resumen, language="text")
+
+
+
 
 
 
