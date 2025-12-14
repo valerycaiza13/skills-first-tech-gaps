@@ -6,6 +6,29 @@ import os
 st.set_page_config(page_title="Skills-First Tech Gaps", layout="wide")
 
 DATA_DIR = Path(__file__).parent  # CSV al mismo nivel que app.py
+# -------------------------
+# PROMPTS (IA Generativa)
+# -------------------------
+PROMPT_INFORME_EMPLEADO = """
+Eres People Analytics Lead y HR Business Partner especializado en talento tecnológico.
+
+Genera un informe profesional y accionable a partir de los datos proporcionados sobre brechas de skills.
+Usa SOLO la información entregada; no inventes skills, niveles ni cifras.
+
+Interpretación del peso:
+- Peso 3: skill crítica para el rol
+- Peso 2: skill importante
+- Peso 1: skill básica o de apoyo
+
+Estructura del informe (en español):
+1) Resumen ejecutivo
+2) Hallazgos clave (prioriza peso 3 y gaps altos)
+3) Top prioridades de desarrollo (máx 3)
+4) Propuesta de formación (orientativa: tipo de formación y duración estimada, sin proveedores)
+5) Plan 30/60/90 días
+6) Riesgos si no se actúa
+""".strip()
+
 PROMPT_INFORME_RESUMEN = """
 Eres HR Director y People Analytics Lead. Genera un informe ejecutivo del área de Tecnología a partir de datos agregados.
 Usa SOLO la información proporcionada; no inventes cifras.
@@ -15,10 +38,11 @@ Estructura (en español):
 2) Hallazgos clave (bullets)
 3) Riesgos principales (bullets)
 4) Recomendaciones estratégicas (3–6 acciones)
-5) Plan 30/60/90 días
+5) Plan de acción 30/60/90 días
 
-Aclaración: el peso indica prioridad (3 crítica, 2 importante, 1 básica).
+Aclaración: el peso indica prioridad (3 crítica, 2 importante, 1 básica) y se usa solo para priorizar.
 """.strip()
+
 
 @st.cache_data
 def load_data():
@@ -149,10 +173,8 @@ def generar_informe_ai(resumen_texto: str, prompt: str) -> str:
     if not api_key:
         return (
             "Falta configurar OPENAI_API_KEY en Secrets de Streamlit.\n\n"
-            "PROMPT:\n"
-            + prompt
-            + "\n\nINPUT:\n"
-            + resumen_texto
+            "PROMPT:\n" + prompt + "\n\n"
+            "INPUT:\n" + resumen_texto
         )
 
     client = OpenAI(api_key=api_key)
@@ -174,8 +196,6 @@ def generar_informe_ai(resumen_texto: str, prompt: str) -> str:
             + "\n\nINPUT (resumen de datos enviado a la IA):\n"
             + resumen_texto
         )
-
-
 # -------------------------
 # UI
 # -------------------------
@@ -266,7 +286,7 @@ with tab1:
     else:
         st.dataframe(skills_area_df, use_container_width=True)
 
-    # 👇 Esto se muestra SIEMPRE en tab1 (no depende del if/else)
+    # Interpretación del peso
     st.info(
         "🔎 **Interpretación del peso de las skills**\n\n"
         "- **3** → Muy importante / crítica para el rol\n"
@@ -279,19 +299,30 @@ with tab1:
         st.info("No se detectaron skills críticas en riesgo con el umbral actual.")
     else:
         st.dataframe(
-            criticas_df[["skill","categoria_skill","empleados_afectados","empleados_total","pct_empleados_afectados","peso"]],
+            criticas_df[
+                ["skill","categoria_skill","empleados_afectados",
+                 "empleados_total","pct_empleados_afectados","peso"]
+            ],
             use_container_width=True
         )
-         st.markdown("### Informe ejecutivo con IA (Tab 1 - Resumen)")
+
+    # -------------------------------------------------
+    # BOTÓN IA – INFORME EJECUTIVO (TAB 1)
+    # -------------------------------------------------
+    st.markdown("### Informe ejecutivo con IA (Tab 1 – Resumen)")
 
     criticas_txt = "No hay skills críticas en riesgo con el umbral actual."
     if len(criticas_df) > 0:
-        criticas_txt = criticas_df[["skill","categoria_skill","pct_empleados_afectados","peso"]].to_string(index=False)
+        criticas_txt = criticas_df[
+            ["skill","categoria_skill","pct_empleados_afectados","peso"]
+        ].to_string(index=False)
 
     resumen_tab1 = f"""
 VISTA: Resumen del área Tech (datos agregados)
 Filtros activos: área={area_sel}, rol={rol_sel}
-Definición: empleado afectado = al menos un gap en cualquier skill.
+
+Definición:
+Empleado afectado = al menos un gap en cualquier skill.
 Peso: 3=crítica, 2=importante, 1=básica.
 
 KPIs:
@@ -305,23 +336,31 @@ Empleados por área:
 Empleados por rol (dentro de cada área):
 {por_rol.to_string(index=False)}
 
-Skills críticas en riesgo (peso=3 y % afectados >= umbral):
+Skills críticas en riesgo (peso=3):
 Umbral actual: {threshold_pct}%
 {criticas_txt}
 """.strip()
 
     if st.button("Generar informe ejecutivo con IA", type="primary", key="btn_informe_ai_tab1"):
         with st.spinner("Generando informe..."):
-            informe_tab1 = generar_informe_ai(resumen_tab1, PROMPT_INFORME_RESUMEN)
+            informe_tab1 = generar_informe_ai(
+                resumen_tab1,
+                PROMPT_INFORME_RESUMEN
+            )
 
         st.markdown("#### Resultado (IA)")
-        st.text_area("Salida (Tab 1)", value=informe_tab1, height=300)
+        st.text_area(
+            "Salida (Tab 1)",
+            value=informe_tab1,
+            height=300
+        )
 
-        with st.expander("Ver prompt usado (Tab 1)", expanded=False):
+        with st.expander("Ver prompt usado (Tab 1)"):
             st.code(PROMPT_INFORME_RESUMEN, language="text")
 
-        with st.expander("Ver input enviado (Tab 1)", expanded=False):
+        with st.expander("Ver input enviado (Tab 1)"):
             st.code(resumen_tab1, language="text")
+
 
 
 with tab2:
@@ -338,13 +377,13 @@ with tab3:
         rol_area_df[["area","rol","empleados_afectados","empleados","pct_empleados_afectados"]],
         use_container_width=True
     )
-
 with tab4:
     st.subheader("Gap por persona")
     st.dataframe(persona_df, use_container_width=True)
 
     st.markdown("### Selecciona un empleado para ver: nivel actual vs requerido + gap")
     emp_list = empleados[["employee_id","nombre","rol","area"]].copy()
+
     if area_sel != "Todas":
         emp_list = emp_list[emp_list["area"] == area_sel]
     if rol_sel != "Todos":
@@ -353,50 +392,99 @@ with tab4:
     if len(emp_list) == 0:
         st.warning("No hay empleados para los filtros seleccionados.")
     else:
-        emp_list["label"] = emp_list["employee_id"] + " - " + emp_list["nombre"] + " (" + emp_list["rol"] + ")"
-        emp_label = st.selectbox("Empleado", emp_list["label"].tolist(), key="emp_select")
-        emp_id = emp_list.loc[emp_list["label"] == emp_label, "employee_id"].iloc[0]
+        emp_list["label"] = (
+            emp_list["employee_id"]
+            + " - "
+            + emp_list["nombre"]
+            + " ("
+            + emp_list["rol"]
+            + ")"
+        )
+
+        emp_label = st.selectbox(
+            "Empleado",
+            emp_list["label"].tolist(),
+            key="emp_select"
+        )
+
+        emp_id = emp_list.loc[
+            emp_list["label"] == emp_label,
+            "employee_id"
+        ].iloc[0]
 
         df_emp = df_f[df_f["employee_id"] == emp_id].copy()
         df_emp = df_emp.sort_values("gap_pos", ascending=False)
 
         st.markdown("#### Detalle (nivel actual, requerido, gap)")
         st.dataframe(
-            df_emp[["skill","categoria_skill","nivel_actual","nivel_requerido","gap_pos","peso"]],
+            df_emp[
+                ["skill","categoria_skill",
+                 "nivel_actual","nivel_requerido",
+                 "gap_pos","peso"]
+            ],
             use_container_width=True
         )
 
         st.markdown("#### Recomendaciones (Top 3 gaps)")
         rec_df = recomendar(df_emp)
+
         if rec_df.empty:
             st.success("Este empleado no presenta brechas para las skills evaluadas.")
         else:
             st.dataframe(rec_df, use_container_width=True)
 
-        # ✅ SOLO AQUÍ VA EL BOTÓN
+        # -----------------------------------------
+        # BOTÓN IA – INFORME POR EMPLEADO (TAB 4)
+        # -----------------------------------------
         st.markdown("### Informe con IA (por empleado)")
 
-        top_gaps = df_emp[df_emp["gap_pos"] > 0].sort_values("gap_pos", ascending=False).head(8)
+        top_gaps = (
+            df_emp[df_emp["gap_pos"] > 0]
+            .sort_values("gap_pos", ascending=False)
+            .head(8)
+        )
 
         resumen = f"""
-Empleado: {df_emp['nombre'].iloc[0]} | Rol: {df_emp['rol'].iloc[0]} | Área: {df_emp['area'].iloc[0]}
-Regla: gap = nivel_requerido - nivel_actual (solo positivos). Peso: 3=crítica, 2=importante, 1=básica.
+Empleado: {df_emp['nombre'].iloc[0]}
+Rol: {df_emp['rol'].iloc[0]}
+Área: {df_emp['area'].iloc[0]}
+
+Regla:
+gap = nivel_requerido - nivel_actual (solo positivos)
+Peso: 3=crítica, 2=importante, 1=básica
 
 Top brechas (máx 8):
-{top_gaps[['skill','categoria_skill','nivel_actual','nivel_requerido','gap_pos','peso']].to_string(index=False)}
-"""
-                if st.button("Generar informe con IA", type="primary", key="btn_informe_ai"):
+{top_gaps[
+    ['skill','categoria_skill',
+     'nivel_actual','nivel_requerido',
+     'gap_pos','peso']
+].to_string(index=False)}
+""".strip()
+
+        if st.button(
+            "Generar informe con IA",
+            type="primary",
+            key="btn_informe_ai_tab4"
+        ):
             with st.spinner("Generando informe..."):
-                informe = generar_informe_ai(resumen, PROMPT_INFORME_EMPLEADO)
+                informe = generar_informe_ai(
+                    resumen,
+                    PROMPT_INFORME_EMPLEADO
+                )
 
             st.markdown("#### Resultado (IA)")
-            st.text_area("Salida (Tab 4)", value=informe, height=300)
+            st.text_area(
+                "Salida (Tab 4)",
+                value=informe,
+                height=300
+            )
 
-            with st.expander("Ver prompt usado (Tab 4)", expanded=False):
+            with st.expander("Ver prompt usado (Tab 4)"):
                 st.code(PROMPT_INFORME_EMPLEADO, language="text")
 
-            with st.expander("Ver input enviado (Tab 4)", expanded=False):
+            with st.expander("Ver input enviado (Tab 4)"):
                 st.code(resumen, language="text")
+
 
 
 
